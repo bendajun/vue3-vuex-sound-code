@@ -19,6 +19,14 @@ export default createStore({
       setTimeout(() => {
         commit('add', payload)
       }, 1000)
+    },
+    asyncPromiseAdd({ commit }, payload) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          commit('add', payload)
+          resolve('asyncPromiseAdd')
+        }, 1000)
+      })
     }
   },
   modules: {
