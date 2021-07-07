@@ -1,4 +1,4 @@
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
 import { storeKey } from './injectKey'
 import { forEachValue, isPromise } from './utils'
 import ModuleCollection from './module/module-collection'
@@ -49,6 +49,12 @@ const installModule = (store, rootState, path, module) => { // 递归安装
   })
 }
 
+const enableStrictMode = (store) => {
+  watch(() => store._state.data, () => { // 当状态发生变化，就同布执行这里的代码
+    console.assert(store._committing, 'do not mutate vuex store outside mutation handlers') // store._committing 为false，打印报错
+  }, { deep: true, flush: 'sync' }) // flush: 'sync'， 同布执行
+}
+
 const resetStoreState = (store, state) => {
   store._state = reactive({ data: state }) // 方便替换，包裹个data
   const wrappedGetters = store._wrappedGetters
@@ -59,6 +65,10 @@ const resetStoreState = (store, state) => {
       enumerable: true,
     })
   })
+
+  if (store.strict) { // 开启严格模式
+    enableStrictMode(store)
+  }
 }
 
 export default class Store {
@@ -69,6 +79,9 @@ export default class Store {
     store._wrappedGetters = Object.create(null)
     store._mutations = Object.create(null)
     store._actions = Object.create(null)
+
+    store.strict = options.strict || false // 严格模式
+    store._committing = false // 严格模式下，修改state只能通过mutation，且mutation必须是同步的，不然会报错
 
     const state = store._modules.root.state // 根状态 ==> 走到这一步应该为 { aCount: {count: 0, cCount: {…}}, bCount: {count: 0}, count: 0 }
     // installModule进行处理为了实现 如使取cCount的state, 可以通过 $store.state.aCount.cCount.count
@@ -85,7 +98,9 @@ export default class Store {
   commit = (type, payload) => {
     const store = this
     const entry = store._mutations[type] || []
-    entry.forEach(handler => handler(payload))
+    store._withCommit(() => {
+      entry.forEach(handler => handler(payload))
+    })
   }
 
   dispatch = (type, payload) => {
@@ -97,5 +112,13 @@ export default class Store {
   install(app, injectKey) { // app.use的时候调用插件时Vue调用这个方法，然后将app实例和参数传递进来
     app.provide(injectKey || storeKey, this) // 将this也就是store仓库通过provide提供出去，那么使用Vue3的inject API就可以接收store了
     app.config.globalProperties.$store = this // vue2的操作是Vue.prototype.$store = this,这样在模板中就可以通过$store得到了store了
+  }
+
+  _withCommit(fn) { // 每次触发mutation调用store.commit时，就调用此函数
+    const store = this
+    const committing = store._committing // 正常情况下为false
+    store._committing = true
+    fn() // 如果mutation都是异步的，那么下一句代码肯定是在这里执行完毕后才会执行
+    store._committing = committing
   }
 }

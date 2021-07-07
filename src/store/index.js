@@ -1,6 +1,7 @@
 import { createStore } from '../vuex-source'
 
 export default createStore({
+  strict: true,
   state: {
     count: 0
   },

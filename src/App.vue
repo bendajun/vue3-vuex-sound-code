@@ -8,6 +8,8 @@
   <hr />
   <div>a模块：aModuleCount: {{ aModuleCount }}</div>
   <button @click="addAmoduleCount">a模块：同步增加aModuleCount</button>
+  <hr />
+  <button @click="$store.state.count++">严格模式下根模块：直接修改count</button>
 </template>
 
 <script>
