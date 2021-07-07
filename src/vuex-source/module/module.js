@@ -4,8 +4,9 @@ import { forEachValue } from '../utils'
 export default class Module {
   constructor(rawModule) {
     this._raw = rawModule // 这里保存的是createStore时传的modules下module元数据
-    this.state = rawModule.state // 对应module的state
     this._children = {} // 当前module下是否还有module
+    this.state = rawModule.state // 对应module的state
+    this.namespaced = rawModule.namespaced
   }
 
   addChild(key, module) {

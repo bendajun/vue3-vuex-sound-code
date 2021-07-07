@@ -12,6 +12,8 @@ const getNestedState = (state, path) => { // 这个函数用来得到响应式�
 const installModule = (store, rootState, path, module) => { // 递归安装
   const isRoot = !path.length // 如果数组是空数组，说明是根，否则不是
 
+  const moduleNamespaced = store._modules.getNamespaced(path) // 这里得到了当前模块的命名空间 => ['a', 'c'] => aCount/cCount/, 然后给getters, mutations,actions添加上命名空间前缀
+  console.log(moduleNamespaced)
   if (!isRoot) { // 不是根模块
     const parentState = path.slice(0, -1).reduce((state, key) => {
       return state[key]
@@ -20,20 +22,20 @@ const installModule = (store, rootState, path, module) => { // 递归安装
   }
 
   module.forEachGetter((getter, key) => {
-    store._wrappedGetters[key] = () => { // 如 path = ['a'] 取的是 state['a'], 即模块a的state
+    store._wrappedGetters[moduleNamespaced + key] = () => { // 如 path = ['a'] 取的是 state['a'], 即模块a的state
       return getter(getNestedState(store.state, path)) // 这里传入响应式的state
     }
   })
 
   module.forEachMutation((mutation, key) => {
-    const entry = store._mutations[key] || (store._mutations[key] = []) // 没有命名空间的时候，commit出发mutation时会执行所有同名的mutation
+    const entry = store._mutations[moduleNamespaced + key] || (store._mutations[moduleNamespaced + key] = []) // 没有命名空间的时候，commit出发mutation时会执行所有同名的mutation
     entry.push(payload => {
       mutation.call(store, getNestedState(store.state, path), payload)
     })
   })
 
   module.forEachAction((action, key) => {
-    const entry = store._actions[key] || (store._actions[key] = []) // 没有命名空间的时候，commit出发mutation时会执行所有同名的mutation
+    const entry = store._actions[moduleNamespaced + key] || (store._actions[moduleNamespaced + key] = []) // 没有命名空间的时候，commit出发mutation时会执行所有同名的mutation
     entry.push(payload => {
       let res = action.call(store, store, payload) // stire.dispatch('fn', payload).then() 返回promise
       // res 如果不是promise,就包裹一层Promise

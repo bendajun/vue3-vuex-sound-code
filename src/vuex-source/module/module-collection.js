@@ -30,6 +30,14 @@ export default class ModuleCollection { // 此类是用来处理module格式的�
       })
     }
   }
+
+  getNamespaced(path) { // ['a', 'c']
+    let module = this.root
+    return path.reduce((namespaceStr, key) => {
+      module = module.getChild(key) // 子模块
+      return namespaceStr + (module.namespaced ? key + '/' : '')
+    }, '')
+  }
 }
 
 // 注1: 格式化modules
