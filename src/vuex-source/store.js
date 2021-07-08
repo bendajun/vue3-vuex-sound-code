@@ -89,6 +89,9 @@ export default class Store {
 
     resetStoreState(store, state) // 将state和getters挂载到store上
     console.log(store, state)
+
+    store._subscribes = []
+    options.plugins.forEach(plugin => plugin(store))
   }
 
   get state() {
@@ -101,6 +104,7 @@ export default class Store {
     store._withCommit(() => {
       entry.forEach(handler => handler(payload))
     })
+    store._subscribes.forEach(sub => sub({ type, payload }, store.state))
   }
 
   dispatch = (type, payload) => {
@@ -112,6 +116,11 @@ export default class Store {
   install(app, injectKey) { // app.use的时候调用插件时Vue调用这个方法，然后将app实例和参数传递进来
     app.provide(injectKey || storeKey, this) // 将this也就是store仓库通过provide提供出去，那么使用Vue3的inject API就可以接收store了
     app.config.globalProperties.$store = this // vue2的操作是Vue.prototype.$store = this,这样在模板中就可以通过$store得到了store了
+  }
+
+  subscribe(fn) {
+    const store = this
+    store._subscribes.push(fn)
   }
 
   _withCommit(fn) { // 每次触发mutation调用store.commit时，就调用此函数
