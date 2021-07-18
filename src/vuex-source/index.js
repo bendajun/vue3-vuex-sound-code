@@ -1,9 +1,5 @@
-import Store from './store'
+import { createStore } from './store'
 import { useStore } from './injectKey'
-
-const createStore = (options) => {
-  return new Store(options)
-}
 
 export {
   createStore,
